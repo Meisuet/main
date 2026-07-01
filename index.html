@@ -32,7 +32,6 @@ padding: 12px;
 overflow: hidden;
 }
 
-/* 頂部時間區塊 */
 .header-section {
 background-color: var(--header-bg);
 border-radius: 10px;
@@ -61,7 +60,6 @@ font-weight: 900;
 font-family: monospace;
 }
 
-/* 中間車務區塊 */
 .transport-section {
 flex: 1;
 display: flex;
@@ -114,7 +112,6 @@ border-radius: 6px;
 color: var(--accent-blue);
 }
 
-/* 底部天氣區塊 */
 .weather-section {
 background-color: var(--weather-bg);
 border-radius: 10px;
@@ -212,12 +209,13 @@ document.getElementById('current-time').innerText = `${String(hours).padStart(2,
 setInterval(updateClock, 1000);
 updateClock();
 
-// 交通資料獲取 (改用無網域限制的鏡像源)
+// 獲取數據
 async function fetchETA() {
-// 輕鐵數據 (天瑞站 460)
+// 輕鐵數據 (注意：修正官方參數為 station_id=460)
 try {
-const res = await fetch('https://api.hkbus.app/v1/mtr/lrt/getSchedule?stationId=460');
+const res = await fetch('https://api.hkbus.app/v1/mtr/lrt/getSchedule?station_id=460');
 const data = await res.json();
+
 if (data && data.platform_list) {
 let t705 = [];
 let t761p = [];
@@ -227,6 +225,7 @@ if (p.route_list) {
 p.route_list.forEach(r => {
 let time = r.time_ch || r.time_en;
 if(time.includes("即將")) time = "即將抵達";
+
 if(r.route_no === '705') t705.push(time);
 if(r.route_no === '761P') t761p.push(time);
 });
@@ -234,10 +233,14 @@ if(r.route_no === '761P') t761p.push(time);
 });
 renderUI('eta-705', t705.slice(0, 2));
 renderUI('eta-761p', t761p.slice(0, 2));
+} else {
+document.getElementById('eta-705').innerHTML = '<span class="eta-time">暫無班次</span>';
+document.getElementById('eta-761p').innerHTML = '<span class="eta-time">暫無班次</span>';
 }
 } catch (e) {
-document.getElementById('eta-705').innerHTML = '<span class="eta-time">服務暫停</span>';
-document.getElementById('eta-761p').innerHTML = '<span class="eta-time">服務暫停</span>';
+console.error(e);
+document.getElementById('eta-705').innerHTML = '<span class="eta-time">暫無班次</span>';
+document.getElementById('eta-761p').innerHTML = '<span class="eta-time">暫無班次</span>';
 }
 
 // 港鐵巴士 K75P 數據
@@ -261,7 +264,8 @@ renderUI('eta-k75p', bK75p.slice(0, 2));
 document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">暫無班次</span>';
 }
 } catch (e) {
-document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">服務暫停</span>';
+console.error(e);
+document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">暫無班次</span>';
 }
 }
 
@@ -274,7 +278,7 @@ return;
 el.innerHTML = arr.map(t => `<span class="eta-time">${t}</span>`).join('');
 }
 
-// 天文台天氣獲取
+// 天文台天氣
 async function fetchWeather() {
 try {
 const res = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
