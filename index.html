@@ -105,6 +105,7 @@ gap: 15px;
 font-size: 20px;
 font-weight: bold;
 font-family: monospace;
+flex-wrap: wrap;
 }
 
 .eta-time {
@@ -189,7 +190,7 @@ display: none;
 <div class="route-card" style="border-left-color: var(--accent-blue);">
 <div class="route-info">
 <span class="route-name">巴士 K75P</span>
-<span class="route-dest">往 洪水橋</span>
+<span class="route-dest">天瑞總站 往 洪水橋</span>
 </div>
 <div class="eta-container" id="eta-k75p">
 <span class="eta-time">載入中...</span>
@@ -231,41 +232,46 @@ document.getElementById('current-time').innerText = `${String(hours).padStart(2,
 setInterval(updateClock, 1000);
 updateClock();
 
-// 使用免費的 CORS 代理
-const proxy = "https://corsproxy.io/?";
+// 換用另一個更穩定的開源 CORS 代理服務，避免被阻擋
+const proxyUrl = "https://api.allorigins.win/get?url=";
 
 async function fetchTransportETA() {
-// 1. 獲取輕鐵 705 & 761P (天瑞站 ID: 460)
+// 1. 獲取輕鐵數據 (天瑞站 ID: 460)
 try {
-const lrUrl = 'https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?stationId=460';
-const response = await fetch(proxy + encodeURIComponent(lrUrl));
-const data = await response.json();
+const lrApi = 'https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?stationId=460';
+// allorigins 需要將網址包在它的參數裡
+const response = await fetch(proxyUrl + encodeURIComponent(lrApi));
+const wrapper = await response.json();
+// 它的實際回傳內容在 wrapper.contents 裡，需要解析成 JSON
+const data = JSON.parse(wrapper.contents);
 
-if(data.status === 1 && data.platform_list) {
+if(data && data.status === 1 && data.platform_list) {
 processLRT(data.platform_list);
 } else {
-document.getElementById('eta-705').innerHTML = '<span class="eta-time">暫無班次</span>';
-document.getElementById('eta-761p').innerHTML = '<span class="eta-time">暫無班次</span>';
+document.getElementById('eta-705').innerHTML = '<span class="eta-time">未到服務時間</span>';
+document.getElementById('eta-761p').innerHTML = '<span class="eta-time">未到服務時間</span>';
 }
 } catch (e) {
-console.error(e);
-document.getElementById('eta-705').innerHTML = '<span class="eta-time">讀取失敗</span>';
-document.getElementById('eta-761p').innerHTML = '<span class="eta-time">讀取失敗</span>';
+console.error("輕鐵解碼失敗", e);
+document.getElementById('eta-705').innerHTML = `<span class="eta-time" style="color:red; font-size:12px;">讀取失敗: ${e.message.slice(0,15)}</span>`;
+document.getElementById('eta-761p').innerHTML = `<span class="eta-time" style="color:red; font-size:12px;">讀取失敗</span>`;
 }
 
 // 2. 獲取港鐵巴士 K75P
 try {
-const busUrl = 'https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule?route=K75P';
-const response = await fetch(proxy + encodeURIComponent(busUrl));
-const data = await response.json();
-if(data.status === 1 && data.bus_list && data.bus_list['K75P']) {
+const busApi = 'https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule?route=K75P';
+const response = await fetch(proxyUrl + encodeURIComponent(busApi));
+const wrapper = await response.json();
+const data = JSON.parse(wrapper.contents);
+
+if(data && data.status === 1 && data.bus_list && data.bus_list['K75P']) {
 processBus(data.bus_list['K75P']);
 } else {
-document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">暫無班次</span>';
+document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">未到服務時間</span>';
 }
 } catch (e) {
-console.error(e);
-document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">讀取失敗</span>';
+console.error("巴士解碼失敗", e);
+document.getElementById('eta-k75p').innerHTML = `<span class="eta-time" style="color:red; font-size:12px;">讀取失敗</span>`;
 }
 }
 
@@ -276,8 +282,11 @@ let eta761p = [];
 platforms.forEach(platform => {
 if(platform.route_list) {
 platform.route_list.forEach(route => {
-let timeText = route.time_ch || route.time_en;
-// 如果顯示為"即將抵達"，縮短文字
+// 讀取剩餘分鐘數（港鐵 API 通常在 time_ch 或 time_en 提供 "4 min" 或 "4 分鐘"）
+// 如果都沒有，改拿它的 departure_time 來顯示
+let timeText = route.time_ch || route.time_en || route.departure_time;
+
+if(timeText) {
 if(timeText.includes("即將")) timeText = "即將抵達";
 
 if(route.route_no === '705') {
@@ -285,6 +294,7 @@ eta705.push(timeText);
 }
 if(route.route_no === '761P') {
 eta761p.push(timeText);
+}
 }
 });
 }
@@ -297,14 +307,18 @@ renderETADisplay('eta-761p', eta761p.slice(0, 2));
 function processBus(busList) {
 let etaBus = [];
 busList.forEach(bus => {
-// 篩選靠近天瑞方向的巴士，港鐵巴士一般返回的是倒數分鐘數值
 if(bus.departure_time) {
-const diffMs = new Date(bus.departure_time) - new Date();
-const diffMins = Math.max(0, Math.floor(diffMs / 60000));
-if (diffMins === 0) {
+let timeText = bus.departure_time;
+if (timeText.includes(":")) {
+// 如果是給時間點，例如 "22:55"，抓取最後的時間字串顯示
+etaBus.push(timeText);
+} else {
+let minNum = parseInt(timeText);
+if (isNaN(minNum) || minNum <= 0) {
 etaBus.push("即將抵達");
 } else {
-etaBus.push(`${diffMins} 分鐘`);
+etaBus.push(`${minNum} 分鐘`);
+}
 }
 }
 });
@@ -313,7 +327,7 @@ renderETADisplay('eta-k75p', etaBus.slice(0, 2));
 
 function renderETADisplay(elementId, etaArray) {
 const container = document.getElementById(elementId);
-if(etaArray.length === 0) {
+if(!etaArray || etaArray.length === 0) {
 container.innerHTML = `<span class="eta-time">暫無班次</span>`;
 return;
 }
@@ -322,7 +336,6 @@ container.innerHTML = etaArray.map(time => `<span class="eta-time">${time}</span
 
 async function fetchWeatherData() {
 try {
-// 天氣 API 一般沒有 CORS 限制，直接獲取即可
 const weatherResp = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
 const weatherData = await weatherResp.json();
 
@@ -340,7 +353,7 @@ document.getElementById('weather-uv').innerText = `UV 指數: ${weatherData.uvin
 document.getElementById('weather-uv').innerText = `UV 指數: 0`;
 }
 
-// 警告資訊
+// 警告
 const warningResp = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=tc');
 const warningData = await warningResp.json();
 const alertEl = document.getElementById('weather-alert');
