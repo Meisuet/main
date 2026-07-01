@@ -32,7 +32,6 @@ padding: 10px;
 overflow: hidden;
 }
 
-/* 頂部時間日期區塊 */
 .header-section {
 background-color: var(--header-bg);
 border-radius: 10px;
@@ -63,7 +62,6 @@ margin-top: 5px;
 font-family: monospace;
 }
 
-/* 中間車務 ETA 區塊 */
 .transport-section {
 flex: 1;
 display: flex;
@@ -116,7 +114,6 @@ border-radius: 5px;
 color: var(--accent-blue);
 }
 
-/* 底部天氣區塊 */
 .weather-section {
 background-color: var(--weather-bg);
 border-radius: 10px;
@@ -156,7 +153,7 @@ font-weight: bold;
 background: rgba(0,0,0,0.2);
 padding: 5px;
 border-radius: 4px;
-display: none; /* 有警告時才顯示 */
+display: none;
 }
 </style>
 </head>
@@ -164,8 +161,8 @@ display: none; /* 有警告時才顯示 */
 
 <div class="header-section">
 <div class="header-title">Tin Shui Station Hub</div>
-<div class="date-display" id="current-date">2026/07/01 WED</div>
-<div class="time-display" id="current-time">04:46 PM</div>
+<div class="date-display" id="current-date">----/--/-- ---</div>
+<div class="time-display" id="current-time">00:00:00 AM</div>
 </div>
 
 <div class="transport-section">
@@ -192,7 +189,7 @@ display: none; /* 有警告時才顯示 */
 <div class="route-card" style="border-left-color: var(--accent-blue);">
 <div class="route-info">
 <span class="route-name">巴士 K75P</span>
-<span class="route-dest">往 洪水橋 (循環線)</span>
+<span class="route-dest">往 洪水橋</span>
 </div>
 <div class="eta-container" id="eta-k75p">
 <span class="eta-time">載入中...</span>
@@ -213,7 +210,6 @@ display: none; /* 有警告時才顯示 */
 </div>
 
 <script>
-// 更新時鐘 (每秒更新)
 function updateClock() {
 const now = new Date();
 const year = now.getFullYear();
@@ -225,7 +221,7 @@ const day = weekdays[now.getDay()];
 let hours = now.getHours();
 const ampm = hours >= 12 ? 'PM' : 'AM';
 hours = hours % 12;
-hours = hours ? hours : 12; // 0 點轉為 12 點
+hours = hours ? hours : 12;
 const minutes = String(now.getMinutes()).padStart(2, '0');
 const seconds = String(now.getSeconds()).padStart(2, '0');
 
@@ -235,36 +231,44 @@ document.getElementById('current-time').innerText = `${String(hours).padStart(2,
 setInterval(updateClock, 1000);
 updateClock();
 
-// 獲取交通工具的 ETA (天瑞站)
-// 註：天瑞站的輕鐵月台代號或巴士站代號需與港鐵 API 對齊。
-// 天瑞輕鐵站編號一般為 460 (705在1月台，761P在2月台，此處以常用API邏輯示範)
+// 使用免費的 CORS 代理
+const proxy = "https://corsproxy.io/?";
+
 async function fetchTransportETA() {
+// 1. 獲取輕鐵 705 & 761P (天瑞站 ID: 460)
 try {
-// 1. 輕鐵 705 及 761P (天瑞站 ID: 460)
-const lrResponse = await fetch('https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?stationId=460');
-const lrData = await lrResponse.json();
+const lrUrl = 'https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?stationId=460';
+const response = await fetch(proxy + encodeURIComponent(lrUrl));
+const data = await response.json();
 
-if(lrData.status === 1 && lrData.platform_list) {
-processLRT(lrData.platform_list);
+if(data.status === 1 && data.platform_list) {
+processLRT(data.platform_list);
+} else {
+document.getElementById('eta-705').innerHTML = '<span class="eta-time">暫無班次</span>';
+document.getElementById('eta-761p').innerHTML = '<span class="eta-time">暫無班次</span>';
 }
 } catch (e) {
-console.error("無法獲取輕鐵數據，這通常是由於瀏覽器 CORS 限制引起。", e);
+console.error(e);
+document.getElementById('eta-705').innerHTML = '<span class="eta-time">讀取失敗</span>';
+document.getElementById('eta-761p').innerHTML = '<span class="eta-time">讀取失敗</span>';
 }
 
+// 2. 獲取港鐵巴士 K75P
 try {
-// 2. 港鐵巴士 K75P (天瑞總站/分站編號，此處以 DATA.GOV.HK 港鐵巴士 API 格式為準)
-// 備註：部分 MTR 巴士需要傳入特定的 route 與 station 參數
-const busResponse = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule?route=K75P');
-const busData = await busResponse.json();
-if(busData.status === 1) {
-processBus(busData.bus_list, 'K75P');
+const busUrl = 'https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule?route=K75P';
+const response = await fetch(proxy + encodeURIComponent(busUrl));
+const data = await response.json();
+if(data.status === 1 && data.bus_list && data.bus_list['K75P']) {
+processBus(data.bus_list['K75P']);
+} else {
+document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">暫無班次</span>';
 }
 } catch (e) {
-console.error("無法獲取巴士數據", e);
+console.error(e);
+document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">讀取失敗</span>';
 }
 }
 
-// 處理輕鐵數據
 function processLRT(platforms) {
 let eta705 = [];
 let eta761p = [];
@@ -272,37 +276,38 @@ let eta761p = [];
 platforms.forEach(platform => {
 if(platform.route_list) {
 platform.route_list.forEach(route => {
-// 過濾兩班車
+let timeText = route.time_ch || route.time_en;
+// 如果顯示為"即將抵達"，縮短文字
+if(timeText.includes("即將")) timeText = "即將抵達";
+
 if(route.route_no === '705') {
-eta705.push(route.time_en || route.time_ch);
+eta705.push(timeText);
 }
 if(route.route_no === '761P') {
-eta761p.push(route.time_en || route.time_ch);
+eta761p.push(timeText);
 }
 });
 }
 });
 
-// 更新網頁顯示 (取前兩班)
 renderETADisplay('eta-705', eta705.slice(0, 2));
 renderETADisplay('eta-761p', eta761p.slice(0, 2));
 }
 
-// 處理港鐵巴士數據
-function processBus(busList, routeNo) {
-// 篩選出屬於天瑞站(依據你的具體需求篩選 station_id)往洪水橋方向的車次
-// 這裡簡化為抓取該路線前兩班倒數時間
+function processBus(busList) {
 let etaBus = [];
-if(busList && busList[routeNo]) {
-busList[routeNo].forEach(bus => {
-// 計算剩餘分鐘數
+busList.forEach(bus => {
+// 篩選靠近天瑞方向的巴士，港鐵巴士一般返回的是倒數分鐘數值
 if(bus.departure_time) {
 const diffMs = new Date(bus.departure_time) - new Date();
 const diffMins = Math.max(0, Math.floor(diffMs / 60000));
+if (diffMins === 0) {
+etaBus.push("即將抵達");
+} else {
 etaBus.push(`${diffMins} 分鐘`);
 }
-});
 }
+});
 renderETADisplay('eta-k75p', etaBus.slice(0, 2));
 }
 
@@ -315,57 +320,51 @@ return;
 container.innerHTML = etaArray.map(time => `<span class="eta-time">${time}</span>`).join('');
 }
 
-// 獲取香港天文台天氣數據
 async function fetchWeatherData() {
 try {
-// 現時天氣資料
+// 天氣 API 一般沒有 CORS 限制，直接獲取即可
 const weatherResp = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
 const weatherData = await weatherResp.json();
 
-// 1. 溫度 (取濕地公園或屯門/元朗最接近天水圍的觀測站，這裡用濕地公園作示範，若無則用總部)
 const wetLandParkTemp = weatherData.temperature.data.find(item => item.place === '濕地公園');
 const tsimShaTsuiTemp = weatherData.temperature.data.find(item => item.place === '香港天文台');
 const currentTemp = wetLandParkTemp ? wetLandParkTemp.value : tsimShaTsuiTemp.value;
 document.getElementById('weather-temp').innerText = `${currentTemp} °C`;
 
-// 2. 濕度
 const currentHumidity = weatherData.humidity.data[0].value;
 document.getElementById('weather-humidity').innerText = `濕度: ${currentHumidity}%`;
 
-// 3. 紫外光指數
 if(weatherData.uvindex && weatherData.uvindex.data && weatherData.uvindex.data.length > 0) {
 document.getElementById('weather-uv').innerText = `UV 指數: ${weatherData.uvindex.data[0].value}`;
 } else {
 document.getElementById('weather-uv').innerText = `UV 指數: 0`;
 }
 
-// 4. 天氣警告提示
+// 警告資訊
 const warningResp = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=tc');
 const warningData = await warningResp.json();
 const alertEl = document.getElementById('weather-alert');
 
-if (Object.keys(warningData).length > 0) {
-// 串接所有生效中的警告名稱
+if (warningData && Object.keys(warningData).length > 0) {
 const warnings = Object.values(warningData).map(w => w.name).join(' | ');
 alertEl.innerText = `警告: ${warnings}`;
 alertEl.style.display = 'block';
 } else {
 alertEl.style.display = 'none';
 }
-
 } catch (e) {
-console.error("無法獲取天氣數據", e);
+console.error(e);
 }
 }
 
-// 定時更新設定 (每 60 秒更新一次數據)
 function initDataFetch() {
 fetchTransportETA();
 fetchWeatherData();
 }
 
+// 每 60 秒更新一次
 setInterval(initDataFetch, 60000);
-initDataFetch(); // 初始化載入
+initDataFetch();
 </script>
 </body>
 </html>
