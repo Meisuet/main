@@ -139,13 +139,16 @@ line-height: 1.6;
 </head>
 <body>
 
+<!-- 頂部時間 -->
 <div class="header-section">
 <div class="header-title">Tin Shui Wai Monitor</div>
 <div class="date-display" id="current-date">----/--/-- ---</div>
 <div class="time-display" id="current-time">00:00:00 AM</div>
 </div>
 
+<!-- 中間：到站時間 -->
 <div class="transport-section">
+<!-- 705 -->
 <div class="route-card">
 <div class="route-info">
 <span class="route-name">輕鐵 705</span>
@@ -156,6 +159,7 @@ line-height: 1.6;
 </div>
 </div>
 
+<!-- 761P -->
 <div class="route-card">
 <div class="route-info">
 <span class="route-name">輕鐵 761P</span>
@@ -166,6 +170,7 @@ line-height: 1.6;
 </div>
 </div>
 
+<!-- K75P -->
 <div class="route-card" style="border-left-color: var(--accent-blue);">
 <div class="route-info">
 <span class="route-name">港鐵巴士 K75P</span>
@@ -177,6 +182,7 @@ line-height: 1.6;
 </div>
 </div>
 
+<!-- 底部天氣 -->
 <div class="weather-section">
 <div class="weather-main">
 <div class="temp-display" id="weather-temp">--°C</div>
@@ -209,49 +215,53 @@ document.getElementById('current-time').innerText = `${String(hours).padStart(2,
 setInterval(updateClock, 1000);
 updateClock();
 
-// 獲取數據
+// 引入高穩定性萬能 CORS 代理，直接連港鐵官方 API
+const proxy = "https://corsproxy.io/?";
+const lrtUrl = encodeURIComponent("https://rt.mtr.com.hk/ch/ch_time_table/lrt.php?station_id=460");
+const busUrl = encodeURIComponent("https://rt.mtr.com.hk/ch/ch_time_table/bus.php?route=K75P");
+
 async function fetchETA() {
-// 輕鐵數據 (注意：修正官方參數為 station_id=460)
+// 1. 輕鐵數據直連處理
 try {
-const res = await fetch('https://api.hkbus.app/v1/mtr/lrt/getSchedule?station_id=460');
+const res = await fetch(`${proxy}${lrtUrl}`);
 const data = await res.json();
 
-if (data && data.platform_list) {
 let t705 = [];
 let t761p = [];
 
+// 解析港鐵官方原生輕鐵數據格式
+if (data && data.platform_list) {
 data.platform_list.forEach(p => {
 if (p.route_list) {
 p.route_list.forEach(r => {
-let time = r.time_ch || r.time_en;
-if(time.includes("即將")) time = "即將抵達";
+let time = r.time_ch || r.time_en || "";
+if (time.includes("即將")) time = "即將抵達";
 
-if(r.route_no === '705') t705.push(time);
-if(r.route_no === '761P') t761p.push(time);
+if (r.route_no === '705') t705.push(time);
+if (r.route_no === '761P') t761p.push(time);
 });
 }
 });
+}
 renderUI('eta-705', t705.slice(0, 2));
 renderUI('eta-761p', t761p.slice(0, 2));
-} else {
-document.getElementById('eta-705').innerHTML = '<span class="eta-time">暫無班次</span>';
-document.getElementById('eta-761p').innerHTML = '<span class="eta-time">暫無班次</span>';
-}
 } catch (e) {
 console.error(e);
 document.getElementById('eta-705').innerHTML = '<span class="eta-time">暫無班次</span>';
 document.getElementById('eta-761p').innerHTML = '<span class="eta-time">暫無班次</span>';
 }
 
-// 港鐵巴士 K75P 數據
+// 2. 港鐵巴士 K75P 數據直連處理
 try {
-const res = await fetch('https://api.hkbus.app/v1/mtr/bus/getSchedule?route=K75P');
+const res = await fetch(`${proxy}${busUrl}`);
 const data = await res.json();
-if (data && data.bus_list && data.bus_list['K75P']) {
+
 let bK75p = [];
+// 解析港鐵官方原生巴士數據格式
+if (data && data.bus_list && data.bus_list['K75P']) {
 data.bus_list['K75P'].forEach(b => {
-if(b.departure_time) {
-if(b.departure_time.includes(":")) {
+if (b.departure_time) {
+if (b.departure_time.includes(":")) {
 bK75p.push(b.departure_time);
 } else {
 let m = parseInt(b.departure_time);
@@ -259,10 +269,8 @@ bK75p.push(isNaN(m) || m <= 0 ? "即將抵達" : `${m} 分鐘`);
 }
 }
 });
-renderUI('eta-k75p', bK75p.slice(0, 2));
-} else {
-document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">暫無班次</span>';
 }
+renderUI('eta-k75p', bK75p.slice(0, 2));
 } catch (e) {
 console.error(e);
 document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">暫無班次</span>';
@@ -297,8 +305,8 @@ fetchETA();
 fetchWeather();
 }
 
-// 每 60 秒刷新
-setInterval(init, 60000);
+// 每 30 秒快速刷新
+setInterval(init, 30000);
 init();
 </script>
 </body>
