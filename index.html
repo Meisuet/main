@@ -12,8 +12,8 @@
            --weather-bg: #004b87;
            --text-color: #ffffff;
            --accent-lightyellow: #ffda21;
-           --accent-yellow: #f5b041;   /* 輕鐵黃 */
-           --accent-blue: #4af6f6;     /* 巴士藍 */
+           --accent-yellow: #f5b041;
+           --accent-blue: #4af6f6;
        }
        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
        body {
@@ -43,7 +43,6 @@
            color: #ffffff;
            line-height: 1;
        }
-
        .transport-section {
            flex: 1;
            display: flex;
@@ -52,7 +51,6 @@
            margin-bottom: 10px;
            overflow-y: auto;
        }
-
        .route-card {
            background-color: var(--bus-bg);
            border-radius: 10px;
@@ -61,22 +59,10 @@
            flex-direction: column;
            justify-content: center;
        }
-
-       /* 輕鐵用黃色 */
-       .lrt-card {
-           border-left: 6px solid var(--accent-yellow);
-       }
-       .lrt-card .route-name {
-           color: var(--accent-yellow);
-       }
-
-       /* 巴士用藍色 */
-       .bus-card {
-           border-left: 6px solid var(--accent-blue);
-       }
-       .bus-card .route-name {
-           color: var(--accent-blue);
-       }
+       .lrt-card { border-left: 6px solid var(--accent-yellow); }
+       .lrt-card .route-name { color: var(--accent-yellow); }
+       .bus-card { border-left: 6px solid var(--accent-blue); }
+       .bus-card .route-name { color: var(--accent-blue); }
 
        .route-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
        .route-name { font-size: 26px; font-weight: bold; }
@@ -97,13 +83,27 @@
            min-width: 78px;
            text-align: center;
        }
+
+       /* 天氣圖示 */
+       .weather-icon {
+           font-size: 52px;
+           margin-right: 15px;
+           line-height: 1;
+       }
        .weather-section {
            background-color: var(--weather-bg);
            border-radius: 10px;
            padding: 15px;
            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+           display: flex;
+           align-items: center;
        }
-       .weather-main { display: flex; justify-content: space-between; align-items: center; }
+       .weather-main { 
+           display: flex; 
+           justify-content: space-between; 
+           align-items: center;
+           width: 100%;
+       }
        .temp-display { font-size: 38px; font-weight: bold; }
        .weather-details { font-size: 16px; text-align: right; line-height: 1.6; }
    </style>
@@ -115,7 +115,6 @@
        <div class="time-display" id="current-time">00:00:00 AM</div>
    </div>
    <div class="transport-section">
-       <!-- 輕鐵 705 - 黃色 -->
        <div class="route-card lrt-card">
            <div class="route-info">
                <span class="route-name">輕鐵 705</span>
@@ -123,8 +122,6 @@
            </div>
            <div class="eta-container" id="eta-705"><span class="eta-time">連線中...</span></div>
        </div>
-
-       <!-- 輕鐵 761P - 黃色 -->
        <div class="route-card lrt-card">
            <div class="route-info">
                <span class="route-name">輕鐵 761P</span>
@@ -132,8 +129,6 @@
            </div>
            <div class="eta-container" id="eta-761p"><span class="eta-time">連線中...</span></div>
        </div>
-
-       <!-- 巴士 K75P - 藍色 -->
        <div class="route-card bus-card">
            <div class="route-info">
                <span class="route-name">港鐵巴士 K75P</span>
@@ -144,15 +139,19 @@
    </div>
    <div class="weather-section">
        <div class="weather-main">
-           <div class="temp-display" id="weather-temp">--°C</div>
+           <div id="weather-icon" class="weather-icon">☀️</div>
+           <div>
+               <div class="temp-display" id="weather-temp">--°C</div>
+           </div>
            <div class="weather-details">
+               <div id="weather-desc">載入中...</div>
                <div id="weather-humidity">濕度: --%</div>
-               <div id="weather-place">測量點: 濕地公園</div>
            </div>
        </div>
    </div>
 
    <script>
+       // ... (clock, formatToClockTime, renderUI 保持不變) ...
        function updateClock() {
            const now = new Date();
            const year = now.getFullYear();
@@ -192,13 +191,23 @@
            el.innerHTML = arr.map(t => `<span class="eta-time">${t}</span>`).join('');
        }
 
+       function getWeatherIcon(condition) {
+           if (!condition) return "🌥";
+           const desc = condition.toLowerCase();
+           if (desc.includes("晴")) return "☀️";
+           if (desc.includes("雨") || desc.includes("暴雨")) return "🌧";
+           if (desc.includes("雷")) return "⛈";
+           if (desc.includes("陰") || desc.includes("雲")) return "☁️";
+           if (desc.includes("霧")) return "🌫";
+           return "⛅"; // 多雲
+       }
+
        async function fetchETA() {
-           // 輕鐵
+           // 輕鐵部分（不變）
            try {
                const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=460');
                const data = await res.json();
                let t705 = [], t761p = [];
-
                if (data && data.platform_list) {
                    data.platform_list.forEach(p => {
                        if (p.route_list) {
@@ -206,7 +215,6 @@
                                let time = r.time_ch || r.time_en || "即將";
                                if (time === "-" || time.includes("即將")) time = "即將";
                                const displayTime = formatToClockTime(time);
-
                                if (r.route_no === '705') t705.push(displayTime);
                                if (r.route_no === '761P' && (r.dest_ch.includes('元朗') || r.dest_en.includes('Yuen Long'))) {
                                    t761p.push(displayTime);
@@ -215,7 +223,6 @@
                        }
                    });
                }
-
                renderUI('eta-705', [...new Set(t705)].slice(0, 3));
                renderUI('eta-761p', [...new Set(t761p)].slice(0, 3));
            } catch (e) {
@@ -233,14 +240,10 @@
                });
                const data = await res.json();
                let bK75p = [];
-
                if (data && data.busStop && data.busStop.length > 0) {
                    let targetStop = data.busStop.find(stop => stop.busStopId === "K75P-U010");
-                   if (!targetStop) {
-                       targetStop = data.busStop.find(stop => stop.busStopNameCh && stop.busStopNameCh.includes('天瑞'));
-                   }
+                   if (!targetStop) targetStop = data.busStop.find(stop => stop.busStopNameCh && stop.busStopNameCh.includes('天瑞'));
                    if (!targetStop) targetStop = data.busStop[0];
-
                    if (targetStop && targetStop.bus) {
                        targetStop.bus.forEach(b => {
                            let timeText = b.departureTimeText || b.arrivalTimeText || "即將";
@@ -260,20 +263,8 @@
            try {
                const res = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
                const data = await res.json();
+
+               // 溫度
                const wlTemp = data.temperature.data.find(i => i.place === '濕地公園') || data.temperature.data[0];
                document.getElementById('weather-temp').innerText = `${wlTemp.value} °C`;
-               document.getElementById('weather-humidity').innerText = `濕度: ${data.humidity.data[0].value}%`;
-           } catch (e) {
-               console.error("Weather Error:", e);
-           }
-       }
 
-       function init() {
-           fetchETA();
-           fetchWeather();
-       }
-       setInterval(init, 25000);
-       init();
-   </script>
-</body>
-</html>
