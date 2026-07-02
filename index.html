@@ -12,8 +12,8 @@
            --weather-bg: #004b87;
            --text-color: #ffffff;
            --accent-lightyellow: #ffda21;
-           --accent-yellow: #f5b041;
-           --accent-blue: #4af6f6;
+           --accent-yellow: #f5b041;   /* 輕鐵黃 */
+           --accent-blue: #4af6f6;     /* 巴士藍 */
        }
        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
        body {
@@ -40,9 +40,10 @@
            font-weight: 900;
            font-family: 'Chicago', monospace;
            letter-spacing: 6px;
-           color: #ffda21;
+           color: #4af6f6;
            line-height: 1;
        }
+
        .transport-section {
            flex: 1;
            display: flex;
@@ -51,6 +52,7 @@
            margin-bottom: 10px;
            overflow-y: auto;
        }
+
        .route-card {
            background-color: var(--bus-bg);
            border-radius: 10px;
@@ -58,10 +60,26 @@
            display: flex;
            flex-direction: column;
            justify-content: center;
+       }
+
+       /* 輕鐵用黃色 */
+       .lrt-card {
            border-left: 6px solid var(--accent-yellow);
        }
+       .lrt-card .route-name {
+           color: var(--accent-yellow);
+       }
+
+       /* 巴士用藍色 */
+       .bus-card {
+           border-left: 6px solid var(--accent-blue);
+       }
+       .bus-card .route-name {
+           color: var(--accent-blue);
+       }
+
        .route-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-       .route-name { font-size: 26px; font-weight: bold; color: var(--accent-yellow); }
+       .route-name { font-size: 26px; font-weight: bold; }
        .route-dest { font-size: 14px; color: #ccc; }
        .eta-container {
            display: flex;
@@ -75,7 +93,7 @@
            background: rgba(255,255,255,0.1);
            padding: 6px 12px;
            border-radius: 6px;
-           color: var(--text-color);
+           color: var(--accent-blue);
            min-width: 78px;
            text-align: center;
        }
@@ -97,21 +115,26 @@
        <div class="time-display" id="current-time">00:00:00 AM</div>
    </div>
    <div class="transport-section">
-       <div class="route-card">
+       <!-- 輕鐵 705 - 黃色 -->
+       <div class="route-card lrt-card">
            <div class="route-info">
                <span class="route-name">輕鐵 705</span>
                <span class="route-dest">天水圍循環線</span>
            </div>
            <div class="eta-container" id="eta-705"><span class="eta-time">連線中...</span></div>
        </div>
-       <div class="route-card">
+
+       <!-- 輕鐵 761P - 黃色 -->
+       <div class="route-card lrt-card">
            <div class="route-info">
                <span class="route-name">輕鐵 761P</span>
                <span class="route-dest">往 元朗</span>
            </div>
            <div class="eta-container" id="eta-761p"><span class="eta-time">連線中...</span></div>
        </div>
-       <div class="route-card" style="border-left-color: var(--accent-blue);">
+
+       <!-- 巴士 K75P - 藍色 -->
+       <div class="route-card bus-card">
            <div class="route-info">
                <span class="route-name">港鐵巴士 K75P</span>
                <span class="route-dest">天瑞總站 → 洪水橋</span>
@@ -152,7 +175,6 @@
            if (!timeStr || timeStr === "即將抵達" || timeStr === "-") return "即將";
            const num = parseInt(timeStr);
            if (isNaN(num)) return timeStr;
-
            const now = new Date();
            const future = new Date(now.getTime() + num * 60000);
            let h = future.getHours();
@@ -171,7 +193,7 @@
        }
 
        async function fetchETA() {
-           // === 輕鐵 (LRT) ===
+           // 輕鐵
            try {
                const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=460');
                const data = await res.json();
@@ -183,7 +205,6 @@
                            p.route_list.forEach(r => {
                                let time = r.time_ch || r.time_en || "即將";
                                if (time === "-" || time.includes("即將")) time = "即將";
-
                                const displayTime = formatToClockTime(time);
 
                                if (r.route_no === '705') t705.push(displayTime);
@@ -195,18 +216,15 @@
                    });
                }
 
-               t705 = [...new Set(t705)].slice(0, 3);
-               t761p = [...new Set(t761p)].slice(0, 3);
-
-               renderUI('eta-705', t705);
-               renderUI('eta-761p', t761p);
+               renderUI('eta-705', [...new Set(t705)].slice(0, 3));
+               renderUI('eta-761p', [...new Set(t761p)].slice(0, 3));
            } catch (e) {
                console.error("LRT Error:", e);
                document.getElementById('eta-705').innerHTML = '<span class="eta-time">更新失敗</span>';
                document.getElementById('eta-761p').innerHTML = '<span class="eta-time">更新失敗</span>';
            }
 
-           // === K75P 巴士（天瑞總站）===
+           // K75P 巴士
            try {
                const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
                    method: 'POST',
@@ -217,14 +235,9 @@
                let bK75p = [];
 
                if (data && data.busStop && data.busStop.length > 0) {
-                   // 使用官方 Stop ID 精準匹配天瑞總站
                    let targetStop = data.busStop.find(stop => stop.busStopId === "K75P-U010");
-
-                   // 備用匹配（站名或第一個站）
                    if (!targetStop) {
-                       targetStop = data.busStop.find(stop => 
-                           stop.busStopNameCh && stop.busStopNameCh.includes('天瑞')
-                       );
+                       targetStop = data.busStop.find(stop => stop.busStopNameCh && stop.busStopNameCh.includes('天瑞'));
                    }
                    if (!targetStop) targetStop = data.busStop[0];
 
@@ -236,8 +249,7 @@
                        });
                    }
                }
-
-               renderUI('eta-k75p', bK75p.slice(0, 3));
+               renderUI('eta-k75p', bK75p.slice(0, 4));
            } catch (e) {
                console.error("K75P Error:", e);
                document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">更新失敗</span>';
