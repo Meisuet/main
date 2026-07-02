@@ -15,14 +15,7 @@
            --accent-yellow: #f5b041;
            --accent-blue: #4af6f6;
        }
-
-       * {
-           box-sizing: border-box;
-           margin: 0;
-           padding: 0;
-           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-       }
-
+       * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
        body {
            background-color: var(--bg-color);
            color: var(--text-color);
@@ -32,7 +25,6 @@
            padding: 12px;
            overflow: hidden;
        }
-
        .header-section {
            background-color: var(--header-bg);
            border-radius: 10px;
@@ -41,32 +33,16 @@
            margin-bottom: 10px;
            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
        }
-
-       .header-title {
-           font-size: 15px;
-           font-weight: bold;
-           text-transform: uppercase;
-           letter-spacing: 2px;
-           color: var(--accent-lightyellow);
-           margin-bottom: 3px;
-       }
-
-       .date-display {
-           font-size: 18px;
-           font-weight: bold;
-       }
-
-       /* === 電子鐘風格 === */
+       .header-title { font-size: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-lightyellow); margin-bottom: 3px; }
+       .date-display { font-size: 18px; font-weight: bold; }
        .time-display {
            font-size: 40px;
            font-weight: 900;
            font-family: 'Chicago', monospace;
            letter-spacing: 6px;
-           text-shadow:
            color: #4af6f6;
            line-height: 1;
        }
-
        .transport-section {
            flex: 1;
            display: flex;
@@ -75,7 +51,6 @@
            margin-bottom: 10px;
            overflow-y: auto;
        }
-
        .route-card {
            background-color: var(--bus-bg);
            border-radius: 10px;
@@ -85,25 +60,9 @@
            justify-content: center;
            border-left: 6px solid var(--accent-yellow);
        }
-
-       .route-info {
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-           margin-bottom: 8px;
-       }
-
-       .route-name {
-           font-size: 26px;
-           font-weight: bold;
-           color: var(--accent-yellow);
-       }
-
-       .route-dest {
-           font-size: 14px;
-           color: #ccc;
-       }
-
+       .route-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+       .route-name { font-size: 26px; font-weight: bold; color: var(--accent-yellow); }
+       .route-dest { font-size: 14px; color: #ccc; }
        .eta-container {
            display: flex;
            gap: 12px;
@@ -112,79 +71,52 @@
            font-family: monospace;
            flex-wrap: wrap;
        }
-
        .eta-time {
            background: rgba(255,255,255,0.1);
            padding: 6px 12px;
            border-radius: 6px;
            color: var(--accent-blue);
        }
-
        .weather-section {
            background-color: var(--weather-bg);
            border-radius: 10px;
            padding: 15px;
            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
        }
-
-       .weather-main {
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-       }
-
-       .temp-display {
-           font-size: 38px;
-           font-weight: bold;
-       }
-
-       .weather-details {
-           font-size: 16px;
-           text-align: right;
-           line-height: 1.6;
-       }
+       .weather-main { display: flex; justify-content: space-between; align-items: center; }
+       .temp-display { font-size: 38px; font-weight: bold; }
+       .weather-details { font-size: 16px; text-align: right; line-height: 1.6; }
    </style>
 </head>
 <body>
-
    <div class="header-section">
        <div class="header-title">Tin Shui MTR/BUS Hub</div>
        <div class="date-display" id="current-date">----/--/-- ---</div>
        <div class="time-display" id="current-time">00:00:00 AM</div>
    </div>
-
    <div class="transport-section">
        <div class="route-card">
            <div class="route-info">
                <span class="route-name">輕鐵 705</span>
                <span class="route-dest">天水圍循環線 (1號月台)</span>
            </div>
-           <div class="eta-container" id="eta-705">
-               <span class="eta-time">連線中...</span>
-           </div>
+           <div class="eta-container" id="eta-705"><span class="eta-time">連線中...</span></div>
        </div>
-
        <div class="route-card">
            <div class="route-info">
                <span class="route-name">輕鐵 761P</span>
                <span class="route-dest">往 元朗 (2號月台)</span>
            </div>
-           <div class="eta-container" id="eta-761p">
-               <span class="eta-time">連線中...</span>
-           </div>
+           <div class="eta-container" id="eta-761p"><span class="eta-time">連線中...</span></div>
        </div>
-
        <div class="route-card" style="border-left-color: var(--accent-blue);">
            <div class="route-info">
                <span class="route-name">港鐵巴士 K75P</span>
-               <span class="route-dest">往 洪水橋 (天瑞站)</span>
+               <span class="route-dest">往 洪水橋 (天瑞總站)</span>
            </div>
-           <div class="eta-container" id="eta-k75p">
-               <span class="eta-time">連線中...</span>
-           </div>
+           <div class="eta-container" id="eta-k75p"><span class="eta-time">連線中...</span></div>
        </div>
    </div>
-
    <div class="weather-section">
        <div class="weather-main">
            <div class="temp-display" id="weather-temp">--°C</div>
@@ -203,13 +135,11 @@
            const date = String(now.getDate()).padStart(2, '0');
            const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
            const day = weekdays[now.getDay()];
-
            let hours = now.getHours();
            const ampm = hours >= 12 ? 'PM' : 'AM';
            hours = hours % 12 || 12;
            const minutes = String(now.getMinutes()).padStart(2, '0');
            const seconds = String(now.getSeconds()).padStart(2, '0');
-
            document.getElementById('current-date').innerText = `${year}/${month}/${date} ${day}`;
            document.getElementById('current-time').innerText = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
        }
@@ -226,12 +156,11 @@
        }
 
        async function fetchETA() {
+           // === 輕鐵 (LRT) ===
            try {
                const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=460');
                const data = await res.json();
-
-               let t705 = [];
-               let t761p = [];
+               let t705 = [], t761p = [];
 
                if (data && data.platform_list) {
                    data.platform_list.forEach(p => {
@@ -239,35 +168,33 @@
                            p.route_list.forEach(r => {
                                let time = r.time_ch || r.time_en || "即將抵達";
                                if (time === "-" || time.includes("即將")) time = "即將抵達";
+
                                if (r.route_no === '705') t705.push(time);
                                if (r.route_no === '761P') t761p.push(time);
                            });
                        }
                    });
                }
-
-               renderUI('eta-705', t705.slice(0, 2));
-               renderUI('eta-761p', t761p.slice(0, 2));
+               renderUI('eta-705', t705.slice(0, 3));
+               renderUI('eta-761p', t761p.slice(0, 3));
            } catch (e) {
                console.error("LRT Error:", e);
                document.getElementById('eta-705').innerHTML = '<span class="eta-time">更新失敗</span>';
                document.getElementById('eta-761p').innerHTML = '<span class="eta-time">更新失敗</span>';
            }
 
+           // === K75P 巴士 ===
            try {
                const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
                    method: 'POST',
                    headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify({
-                       language: "zh",
-                       routeName: "K75P"
-                   })
+                   body: JSON.stringify({ language: "zh", routeName: "K75P" })
                });
-
                const data = await res.json();
                let bK75p = [];
 
                if (data && data.busStop) {
+                   // 天瑞總站 (Tin Shui) 的資料通常在第一個或特定 busStop
                    data.busStop.forEach(stop => {
                        if (stop.bus) {
                            stop.bus.forEach(b => {
@@ -277,8 +204,7 @@
                        }
                    });
                }
-
-               renderUI('eta-k75p', bK75p.slice(0, 2));
+               renderUI('eta-k75p', bK75p.slice(0, 3));
            } catch (e) {
                console.error("Bus Error:", e);
                document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">更新失敗</span>';
@@ -301,8 +227,7 @@
            fetchETA();
            fetchWeather();
        }
-
-       setInterval(init, 30000);
+       setInterval(init, 30000); // 每 30 秒更新一次
        init();
    </script>
 </body>
