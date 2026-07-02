@@ -98,14 +98,14 @@
        <div class="route-card">
            <div class="route-info">
                <span class="route-name">輕鐵 705</span>
-               <span class="route-dest">天水圍循環線 (1號月台)</span>
+               <span class="route-dest">天水圍循環線</span>
            </div>
            <div class="eta-container" id="eta-705"><span class="eta-time">連線中...</span></div>
        </div>
        <div class="route-card">
            <div class="route-info">
                <span class="route-name">輕鐵 761P</span>
-               <span class="route-dest">往 元朗 (2號月台)</span>
+               <span class="route-dest">往 元朗</span>
            </div>
            <div class="eta-container" id="eta-761p"><span class="eta-time">連線中...</span></div>
        </div>
@@ -132,109 +132,4 @@
            const now = new Date();
            const year = now.getFullYear();
            const month = String(now.getMonth() + 1).padStart(2, '0');
-           const date = String(now.getDate()).padStart(2, '0');
-           const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-           const day = weekdays[now.getDay()];
-           let hours = now.getHours();
-           const ampm = hours >= 12 ? 'PM' : 'AM';
-           hours = hours % 12 || 12;
-           const minutes = String(now.getMinutes()).padStart(2, '0');
-           const seconds = String(now.getSeconds()).padStart(2, '0');
-           document.getElementById('current-date').innerText = `${year}/${month}/${date} ${day}`;
-           document.getElementById('current-time').innerText = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
-       }
-       setInterval(updateClock, 1000);
-       updateClock();
-
-       function renderUI(id, arr) {
-           const el = document.getElementById(id);
-           if (!arr || arr.length === 0) {
-               el.innerHTML = '<span class="eta-time">暫無班次</span>';
-               return;
-           }
-           el.innerHTML = arr.map(t => `<span class="eta-time">${t}</span>`).join('');
-       }
-
-       async function fetchETA() {
-           // === 輕鐵 (LRT) ===
-           try {
-               const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=460');
-               const data = await res.json();
-               let t705 = [], t761p = [];
-
-               if (data && data.platform_list) {
-                   data.platform_list.forEach(p => {
-                       if (p.route_list) {
-                           p.route_list.forEach(r => {
-                               let time = r.time_ch || r.time_en || "即將抵達";
-                               if (time === "-" || time.includes("即將")) time = "即將抵達";
-
-                               // 705 必定在 1 號月台
-                               if (r.route_no === '705' && p.platform_id === '1') {
-                                   t705.push(time);
-                               }
-                               // 761P 嚴格限制在 2 號月台（往元朗）
-                               if (r.route_no === '761P' && p.platform_id === '2') {
-                                   t761p.push(time);
-                               }
-                           });
-                       }
-                   });
-               }
-               renderUI('eta-705', t705.slice(0, 3));
-               renderUI('eta-761p', t761p.slice(0, 3));
-           } catch (e) {
-               console.error("LRT Error:", e);
-               document.getElementById('eta-705').innerHTML = '<span class="eta-time">更新失敗</span>';
-               document.getElementById('eta-761p').innerHTML = '<span class="eta-time">更新失敗</span>';
-           }
-
-           // === K75P 巴士 ===
-           try {
-               const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
-                   method: 'POST',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify({ language: "zh", routeName: "K75P" })
-               });
-               const data = await res.json();
-               let bK75p = [];
-
-               if (data && data.busStop) {
-                   // 尋找巴士站編號為 T0755 (天瑞總站) 的資料
-                   const tinShuiStop = data.busStop.find(stop => stop.busStopId === 'T0755');
-                   
-                   if (tinShuiStop && tinShuiStop.bus) {
-                       tinShuiStop.bus.forEach(b => {
-                           let timeText = b.departureTimeText || b.arrivalTimeText || "即將抵達";
-                           if (timeText) bK75p.push(timeText);
-                       });
-                   }
-               }
-               renderUI('eta-k75p', bK75p.slice(0, 3));
-           } catch (e) {
-               console.error("Bus Error:", e);
-               document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">更新失敗</span>';
-           }
-       }
-
-       async function fetchWeather() {
-           try {
-               const res = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
-               const data = await res.json();
-               const wlTemp = data.temperature.data.find(i => i.place === '濕地公園') || data.temperature.data[0];
-               document.getElementById('weather-temp').innerText = `${wlTemp.value} °C`;
-               document.getElementById('weather-humidity').innerText = `濕度: ${data.humidity.data[0].value}%`;
-           } catch (e) {
-               console.error("Weather Error:", e);
-           }
-       }
-
-       function init() {
-           fetchETA();
-           fetchWeather();
-       }
-       setInterval(init, 30000); // 每 30 秒更新一次
-       init();
-   </script>
-</body>
-</html>
+           const date
