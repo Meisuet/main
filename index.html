@@ -157,7 +157,6 @@
            const future = new Date(now.getTime() + num * 60000);
            let h = future.getHours();
            const m = String(future.getMinutes()).padStart(2, '0');
-           const ampm = h >= 12 ? 'PM' : 'AM';
            h = h % 12 || 12;
            return `${h}:${m}`;
        }
@@ -207,7 +206,7 @@
                document.getElementById('eta-761p').innerHTML = '<span class="eta-time">更新失敗</span>';
            }
 
-           // === K75P 巴士（天瑞總站出發時間）===
+           // === K75P 巴士（天瑞總站）===
            try {
                const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
                    method: 'POST',
@@ -218,18 +217,19 @@
                let bK75p = [];
 
                if (data && data.busStop && data.busStop.length > 0) {
-                   // 天瑞總站優先使用 departureTimeText
-                   let targetStop = data.busStop.find(stop => 
-                       (stop.busStopNameCh && (stop.busStopNameCh.includes('天瑞') || stop.busStopNameCh.includes('Tin Shui'))) ||
-                       (stop.busStopId && stop.busStopId.includes('T075'))
-                   );
+                   // 使用官方 Stop ID 精準匹配天瑞總站
+                   let targetStop = data.busStop.find(stop => stop.busStopId === "K75P-U010");
 
-                   // 如果找不到，就取第一個站（通常是總站）
+                   // 備用匹配（站名或第一個站）
+                   if (!targetStop) {
+                       targetStop = data.busStop.find(stop => 
+                           stop.busStopNameCh && stop.busStopNameCh.includes('天瑞')
+                       );
+                   }
                    if (!targetStop) targetStop = data.busStop[0];
 
                    if (targetStop && targetStop.bus) {
                        targetStop.bus.forEach(b => {
-                           // 優先使用 departureTimeText（離開時間）
                            let timeText = b.departureTimeText || b.arrivalTimeText || "即將";
                            if (timeText === "-" || !timeText) timeText = "即將";
                            bK75p.push(formatToClockTime(timeText));
@@ -237,7 +237,7 @@
                    }
                }
 
-               renderUI('eta-k75p', bK75p.slice(0, 4)); // 總站可多顯示一班
+               renderUI('eta-k75p', bK75p.slice(0, 4));
            } catch (e) {
                console.error("K75P Error:", e);
                document.getElementById('eta-k75p').innerHTML = '<span class="eta-time">更新失敗</span>';
@@ -260,7 +260,7 @@
            fetchETA();
            fetchWeather();
        }
-       setInterval(init, 25000); // 每 25 秒更新一次
+       setInterval(init, 25000);
        init();
    </script>
 </body>
