@@ -216,8 +216,8 @@
                    });
                }
 
-               renderUI('eta-705', [...new Set(t705)].slice(0, 3), 'status-705');
-               renderUI('eta-761p', [...new Set(t761p)].slice(0, 3), 'status-761p');
+               renderUI('eta-705', t705.slice(0, 3));
+               renderUI('eta-761p', t761p.slice(0, 3));
            } catch (e) {
                console.error("LRT Error:", e);
                document.getElementById('eta-705').innerHTML = '<span class="eta-time">更新失敗</span>';
